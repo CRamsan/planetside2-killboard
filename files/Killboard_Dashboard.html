@@ -1,0 +1,475 @@
+<html>
+	<title>Planetside 2 Killboard</title>
+	<link rel="stylesheet" href="css/planetside.css" type="text/css">
+	<link rel="stylesheet" href="css/default.css" type="text/css">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery-1.4.4.min.js"></script>
+		<script type="text/javascript" src="js/Overwolf-v1.0.js"></script>		
+		<script type="text/javascript" src="js/censusSOE.js"></script>
+	</head>
+	
+	<body>
+		<header> 
+			<section class="top">
+				<div class="" style="margin: 5px;">
+					<section  width="100%">
+						<div style="float:left; size=20;">
+							<form name="myForm" method="get" onsubmit="search(this);return false;">Character Name: 
+								<input type="text" id="charName" />
+								<input type="button" name="button" value="Search" onClick="search(this.form)">
+							</form>
+							<script>
+								function search(form){
+									refreshCallback(form.charName.value);
+								}
+							</script>
+						</div>
+
+						<div style="float:right; size=20;">
+							Created by Beljoda and CRamsan as a project in 
+							<a href="http://derpcompany.com/home">
+								Derp Company
+							</a>
+							<br>
+							<a onclick="goToBottom();" href="javascript: void(0);">Go to Settings</a>
+							  | 
+							<a onclick="goToLite();" href="javascript: void(0);">Lite Mode</a>
+						</div>
+					</section>
+				</div>
+			</section>
+		</header>
+		<div align="center" width="75%">
+			<div id="headerProfile"></div>            
+			<table class="hor-zebra" id="TableProfile"></table>
+			<div id="headerKillboard"></div>
+			<table class="hor-zebra" id="TableKillboard"></table>
+		</div>
+		
+		<div style="float:left; size=20; margin: 15px;">
+			Update Frequency(ms):
+			<form>
+				<input id="100ms" type="radio" name="update" value="100">100ms<br>
+				<input id="250ms" type="radio" name="update" value="250">250ms<br>
+				<input id="500ms" type="radio" name="update" value="500" checked>500ms<br>
+				<input id="1000ms" type="radio" name="update" value="1000">1000ms<br>
+				<input type="button" name="button" value="Update"  onClick="updateFrequency(this.form)">
+			</form>
+		</div>
+		
+		<div style="float:left; size=20; margin: 15px;" >
+			Take Screenshots:
+			<form>
+				Kills<input id="killsCheck" type="checkbox" name="kills" value="kills"><br>
+				Deaths<input id="deathsCheck" type="checkbox" name="deaths" value="deaths">
+			</form>
+		</div>
+		
+		<div style="float:left; size=20; margin: 15px;">
+			Add Screenshot Delay(ms):
+			<form>
+				Kills: 0ms<input id="killsDelay" type="range" name="points" min="1" max="2000">2000ms<br>
+				Deaths: 0ms<input id="deathsDelay" type="range" name="points" min="1" max="6000">6000ms
+			</form>
+		</div>		
+		
+		<button onclick="saveData()">Save Settings</button>
+		<script>
+			function saveData(){
+				saveToCookie();
+			}
+		</script>
+	</body>
+	
+	<script type="text/javascript">
+			var player;
+			var oldKillboard;
+			
+			var killsCheck;
+			var deathsCheck;
+			var killsDelay;
+			var deathsDelay;
+			
+			var frequency = 500;
+			
+			Overwolf.media.onScreenshotTaken = function () { 
+			}
+			
+			function setCookie(cname,cvalue)
+			{
+				localStorage.setItem(cname, cvalue);
+			}
+
+			function getCookie(cname)
+			{
+				return localStorage.getItem(cname);
+			}
+			
+			goToBottom = function(){
+				window.scrollTo(0,document.body.scrollHeight);
+			};
+			
+			goToLite = function(){
+				Overwolf.window.moveTo(Overwolf.window.screenX + 360, Overwolf.window.screenY);
+				Overwolf.window.resizeTo(460, 229);
+				window.location.replace("Killboard_Dashboard-lite.html");
+			};
+			
+			saveToCookie = function (){
+					setCookie("username", document.getElementById("charName").value);
+					setCookie("kcheck", document.getElementById('killsCheck').checked);
+					setCookie("dcheck", document.getElementById('deathsCheck').checked);
+					setCookie("kdelay", document.getElementById('killsDelay').value);
+					setCookie("ddelay", document.getElementById('deathsDelay').value);
+					setCookie("frequency", frequency);
+			}
+			
+			updateFrequency = function (form){
+				var frequencies = form.update;			
+				var i;
+				for (i=0;i<frequencies.length;i++)
+				{
+					if (frequencies[i].checked)
+					{
+						frequency = frequencies[i].value;
+						break;
+					}
+				}
+			}
+							
+			refreshCallback = function (characterName) {			
+				function GetURLParameter(sParam){
+					var sPageURL = window.location.search.substring(1);
+					var sURLVariables = sPageURL.split('&');
+					for (var i = 0; i < sURLVariables.length; i++) {
+						var sParameterName = sURLVariables[i].split('=');
+						if (sParameterName[0] == sParam) {
+							return sParameterName[1];
+						}
+					}
+				}
+				
+				function formatTime(secondsPlayed) {
+					if(secondsPlayed < 3600){
+						return Math.round(secondsPlayed/3600) + " M";
+					}else{
+						 return (Math.round(10 * secondsPlayed/3600) / 10) + " H";
+					}
+				}
+				
+				function roundFloating(number) {
+					return (Math.round(number * 1000)/1000)
+				}
+				
+				function displayCharacter(playerId, headerId, tableId) {
+					censusSOE.GetFullProfileById(playerId, function (character) {
+						showCharacterInTable(character, $(tableId));
+					});
+				}
+
+				function displayKillboard(playerId, headerId, tableId) {
+					censusSOE.GetKillboardById(playerId, function (killboardList) {
+						showKillboardInTable(killboardList, $(tableId));
+					});
+				}
+
+				function compareKillboardItem(item1, item2){
+					if(	item1.attacker_character_id == item2.attacker_character_id &&
+						item1.character_id == item2.character_id &&
+						item1.timestamp == item2.timestamp ){
+						return true;
+					}else{
+						return false;
+					}
+				}
+							
+				function showCharacterInTable(character, table) {
+					var thr = $('<tr>');
+					
+					thr.append($('<th>').text("NAME"));
+					thr.append($('<th>').text("BR"));
+					thr.append($('<th>').text("FACTION"));
+					thr.append($('<th>').text("CLASS"));
+					thr.append($('<th>').text("STATUS"));
+					thr.append($('<th>').text("OUTFIT"));
+					thr.append($('<th>').text("TIME PLAYED"));
+								
+					var tableBody = $('<tbody>');
+					var odd = false;
+
+					var p = character;
+						
+					var tr = $('<tr>').css('color', '#' + 'ffffff');
+					if (odd = !odd) tr.attr('class', 'odd');
+						
+					tr.append($('<td>').text(p.name.first));
+					tr.append($('<td>').text(p.battle_rank.value));
+					
+					tr.append($('<td>').append($('<img>').attr('src', 'img/'+p.faction.image_id+'.png')));
+					tr.append($('<td>').append($('<img>').attr('src', 'img/'+p.profile.image_id+'.png')));
+
+					if (p.online_status == '0'){
+						tr.append($('<td>').text("OFFLINE").css('color', 'red'));
+					}else{
+						tr.append($('<td>').text("ONLINE").css('color', 'green'));
+					}			
+					if("outfit" in p){
+						tr.append($('<td>').text(p.outfit.name));
+					}else{
+						tr.append($('<td>').text("NONE"));
+					}
+					tr.append($('<td>').text( Math.round(p.times.minutes_played / 60) +' hours' ));
+					
+					tableBody.append(tr);
+
+					table.empty();
+					table.append($('<thead>').append(thr));
+					table.append(tableBody);
+				}
+			
+				function showKillboardInTable(killboardList, table) {
+					
+					var thr = $('<tr>');
+	
+					if(typeof oldKillboard ==	 'undefined'){
+						oldKillboard = killboardList;
+					}else{
+						var item1 = oldKillboard[0];
+						var item2 = killboardList[0];
+						if(compareKillboardItem(item1, item2)){
+							return;	
+						}else{
+							for (var i = 0; i < killboardList.length; ++i) {
+								item2 = killboardList[i];
+								if(compareKillboardItem(item1, item2)){
+									break;
+								}else{
+								
+									if("attacker" in item2){
+										if(item2.attacker.name.first == player.name.first){
+											if (killsCheck.checked) {
+												if(killsDelay.value == 1)
+												{
+													Overwolf.media.takeScreenshot();
+												}
+												else
+												{
+													setTimeout(function(){ Overwolf.media.takeScreenshot() },killsDelay.value);
+												}
+											} 
+											break;
+										}
+									}
+									if("character" in item2){
+										if(item2.character.name.first == player.name.first){
+											if (deathsCheck.checked) {
+												if(deathsDelay.value == 1)
+												{
+													Overwolf.media.takeScreenshot();
+												}
+												else
+												{
+													setTimeout(function(){ Overwolf.media.takeScreenshot() },deathsDelay.value);
+												}
+											} 
+											break;											
+										}
+									}
+									if( !("character" in item2) || !("attacker" in item2)){									
+										if ( (deathsCheck.checked) || 
+											 (killsCheck.checked) ) {
+											if(killsDelay.value == 1)
+											{
+												Overwolf.media.takeScreenshot();
+											}
+											else
+											{
+												setTimeout(function(){ Overwolf.media.takeScreenshot() },killsDelay.value);
+											}											 
+										}
+										break;
+									}
+								}
+							}
+							oldKillboard = killboardList;
+						}
+					}
+					
+					thr.append($('<th>').text("ACTION"));				
+					thr.append($('<th>').text("NAME"));
+					thr.append($('<th>').text("BR"));
+					thr.append($('<th>').text("FACTION"));
+					thr.append($('<th>').text("CLASS"));
+					thr.append($('<th>').text("WEAPON").attr('class', 'restrict-width'));
+					thr.append($('<th>').text("TIME"));
+								
+					var tableBody = $('<tbody>');
+					var odd = false;
+					var time;
+					for (var i = 0; i < killboardList.length; ++i) {
+						var p = killboardList[i];
+
+						var other;						
+
+						var tr = $('<tr>').css('color', '#' + 'ffffff');
+						if (odd = !odd) tr.attr('class', 'odd');
+										
+						if("attacker" in p){
+							if(p.attacker.name.first == player.name.first){
+								other = p.character;
+                                tr.append($('<td>').text("KILLED").css('color', 'green'));
+							}else{
+                                other = p.attacker;
+                                tr.append($('<td>').text("KILLED BY").css('color', 'red'));
+                            }
+						}else{
+                            if( ("character" in p) && (p.character.name.first == player.name.first)){
+                                tr.append($('<td>').text("KILLED BY").css('color', 'red'));
+							}else{
+                                tr.append($('<td>').text("UNKOWN"));
+                            }
+						}
+							
+                        if(typeof other === 'undefined'){
+                            tr.append($('<td>').text('UNKOWN'));
+                            tr.append($('<td>').text('-'));
+                            tr.append($('<td>').text('-'));
+                            tr.append($('<td>').text('-'));
+
+                        }else{
+							tr.append($('<td>').text(other.name.first));
+   							tr.append($('<td>').text(other.battle_rank.value));
+							tr.append($('<td>').append($('<img>').attr('src', 'img/'+other.faction.image_id+'.png')));
+							tr.append($('<td>').append($('<img>').attr('src', 'img/'+other.profile.image_id+'.png')));
+                        }                      
+                          						
+						if("weapon" in p){
+							var cell = cell = $('<td>').attr('class', 'restrict-width');
+							if("vehicle" in p){
+								cell.append( $('<span>').text(p.weapon.name.en + " (" + p.vehicle.name.en +")"));
+							}else{
+								cell.append( $('<span>').text(p.weapon.name.en));
+							}
+							if (p.is_headshot == '1'){
+								cell.append($('<img>').attr({'src':'img/headshot.png', 'class':'img_small'}));
+							}
+							tr.append(cell);
+						}else{
+							if(("character" in p) && ("attacker" in p)){
+								if(p.character.name.first == p.attacker.name.first){
+									tr.append($('<td>').text("SUICIDE"));
+								}else{
+									tr.append($('<td>').text("OTHER"));
+								}
+							}else{
+								tr.append($('<td>').text("OTHER"));
+							}
+						}
+						
+						time = new Date(p.timestamp*1000);
+						tr.append($('<td>').text(time.toLocaleTimeString()));
+
+						tableBody.append(tr);
+					}
+					
+					table.empty();
+					table.append($('<thead>').append(thr));
+					table.append(tableBody);
+				}
+				
+				var kdelay=getCookie("kdelay");				
+				killsDelay = document.getElementById('killsDelay');
+				if( kdelay != "" )
+				{
+					killsDelay.value = kdelay;
+				}
+
+				deathsDelay = document.getElementById('deathsDelay');
+				var ddelay=getCookie("ddelay");				
+				if( ddelay != "" )
+				{
+					deathsDelay.value = ddelay;
+				}
+				
+				var kcheck=getCookie("kcheck");		
+				killsCheck = document.getElementById('killsCheck');
+				killsCheck.checked = ( kcheck == "true");
+
+				var dcheck=getCookie("dcheck");	
+				deathsCheck = document.getElementById('deathsCheck');
+				deathsCheck.checked = ( dcheck == "true" );
+				
+				var freq=getCookie("frequency");
+				if(freq == "100")
+				{
+					document.getElementById('100ms').checked = true;
+				}
+				else if(freq == "250")
+				{
+					document.getElementById('250ms').checked = true;
+				}
+				else if(freq == "500")
+				{
+					document.getElementById('500ms').checked = true;
+				}
+				else if(freq == "1000")
+				{
+					document.getElementById('1000ms').checked = true;
+				}				
+				
+				if(typeof characterName !== 'undefined'){
+					name = characterName;
+				}else{				
+					var user=getCookie("username");
+					if( user == null || user == "" )
+					{
+						window.alert("No name was provided. Please use the search field.");
+						return;
+					}
+					else
+					{
+						name = user;
+					}
+				}
+				
+				censusSOE.GetCharacterIdByName(name, function (character_list) {				
+					try{
+						player = {
+							'id' : character_list[0].character_id,
+							'name' : character_list[0].name
+						}
+					}catch(err){
+						window.alert("No character was found with the name " + name);
+						return;
+					}
+
+					if(typeof character_list[0].outfit ==! 'undefined'){
+						player[outfit_id] = character_list[0].outfit.outfit_id;
+					};
+					
+					headerIdProfile = '#headerProfile';
+					tableIdProfile = '#TableProfile';
+					displayCharacter(player.id, headerIdProfile, tableIdProfile);
+					setInterval(function(){refreshCharacter()},10000);
+					function refreshCharacter(){
+						displayCharacter(player.id, headerIdProfile, tableIdProfile);
+					}
+									
+					headerIdKillboard = '#headerKillboard';
+					tableIdKillboard = '#TableKillboard';
+					displayKillboard(player.id, headerIdKillboard, tableIdKillboard);
+					setInterval(function(){refreshKilboard()},frequency);
+					function refreshKilboard(){
+						displayKillboard(player.id, headerIdKillboard, tableIdKillboard);
+					}
+					
+					var textBox = document.getElementById("charName");
+					textBox.value = name;
+				});				
+			};
+			Overwolf.Connect();
+			$(document).ready(refreshCallback());
+		</script>
+	
+</html>

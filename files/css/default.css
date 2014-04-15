@@ -1,0 +1,74 @@
+body
+{
+	background-color: #000000;
+}
+.hor-zebra
+{
+	font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+	font-size: 11px;
+	margin: 35px;
+	text-align: left;
+	border-collapse: collapse; 
+	border: 2px solid;
+	overflow : auto;
+	border-color:#30ACAC;
+}
+.hor-zebra th
+{
+	font-size: 14px;
+	font-weight: normal;
+	padding: 10px 8px;
+	border: solid;
+	color: #FFFFFF;
+	background: #007A7A;
+}
+.hor-zebra td
+{
+	padding: 8px;
+	border: solid;
+	border-color:#30ACAC;
+	/* color: #669; */
+	/*border: solid;*/
+}
+.hor-zebra tr:hover td
+{
+	background: #999999;
+	color: #000000;
+	border-color:#CC6600;
+}
+.hor-zebra  tr:nth-child(even)
+{
+	background: #005555;
+}
+img
+{
+	width: 38;
+	height: 38;
+}
+.img_small
+{
+	width: 25;
+	height: 25;
+	vertical-align:middle;
+	margin: 5px;
+}
+.restrict-width
+{
+	max-width: 120px;
+}
+a:link 
+{
+	color:#FFFFFF;
+	text-decoration:underline;
+} 
+a:link 
+{
+} 	/* unvisited link */
+a:visited 
+{	
+}  /* visited link */
+a:hover {
+}  /* mouse over link */
+a:active 
+{
+}  /* selected link *
